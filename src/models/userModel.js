@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import bcyrpt from 'bcyrpt';
 
 const Schema = mongoose.Schema;
 
@@ -20,3 +21,7 @@ export const UserSchema = new Schema({
        default: Date.now 
     }
 });
+
+UserSchema.methods.comparePassword = (password, hashPassword) => {
+    return bcyrpt.compareSync(password, hashPassword);
+};
