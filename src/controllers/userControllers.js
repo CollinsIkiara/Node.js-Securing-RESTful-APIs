@@ -13,34 +13,42 @@ export const loginRequired = (req, res, next) => {
     }
 };
 
-export const register = (req, res) => {
-    const newUser = new User(req.body);
-    newUser.hashPassword = bcrypt.hashSync(req.body.password, 10);
-    newUser.save((err, user) =>{
-        if (err) {
-            return res.status(400).send({
-                message: err
-            });
-        } else {
-            user.hashPassword = undefined;
-            return res.json(user);
-        }
-    })
+export const register = async (req, res) => {
+    try {
+        const newUser = new User(req.body);
+        newUser.hashPassword = bcrypt.hashSync(req.body.password, 10);
+        const user = await newUser.save();
+        user.hashPassword = undefined;
+        return res.json(user);
+    } catch (err) {
+        return res.status(400).send({
+            message: err
+        });
+    }
 };
 
-export const login = (req, res) => {
-    User.findOne({
-        email: req.body.email
-    }, (err, user) => {
-        if (err) throw err;
+export const login = async (req, res) => {
+    try {
+        const user = await User.findOne({
+            email: req.body.email
+        });
+        
         if (!user) {
-            res.status(401).json({ message: 'Authentication failed. No user found'});
-        } else if (user) {
-            if (!user.comparePassword(req.body.password, user.hashPassword)) {
-                res.status(401).json({ message: 'Authentication failed. Wrong password'});
-            } else {
-                return res.json({ token: jwt.sign({ email: user.email, username: user.username, _id: user.id}, 'RESTFULAPIs')});
-            }
+            return res.status(401).json({ message: 'Authentication failed. No user found'});
         }
-    });
+        
+        if (!user.comparePassword(req.body.password, user.hashPassword)) {
+            return res.status(401).json({ message: 'Authentication failed. Wrong password'});
+        }
+        
+        return res.json({ 
+            token: jwt.sign({ 
+                email: user.email, 
+                username: user.username, 
+                _id: user.id
+            }, 'RESTFULAPIs')
+        });
+    } catch (err) {
+        return res.status(500).json({ message: err.message });
+    }
 };
